@@ -1,0 +1,729 @@
+<!--<!DOCTYPE html>-->
+<!--<html lang="en">-->
+<!--<head>-->
+<!--<meta charset="UTF-8">-->
+<!--<title>Persona Twin </title>-->
+<!--<style>-->
+<!--  :root {-->
+<!--    &#45;&#45;bg: #0f1115;-->
+<!--    &#45;&#45;panel: #1a1d24;-->
+<!--    &#45;&#45;border: #2a2e37;-->
+<!--    &#45;&#45;text: #e8e9ec;-->
+<!--    &#45;&#45;muted: #8b8f9a;-->
+<!--    &#45;&#45;accent: #5b8cff;-->
+<!--    &#45;&#45;user-bubble: #2a3550;-->
+<!--    &#45;&#45;assistant-bubble: #21242c;-->
+<!--  }-->
+<!--  * { box-sizing: border-box; }-->
+<!--  body {-->
+<!--    margin: 0;-->
+<!--    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;-->
+<!--    background: var(&#45;&#45;bg);-->
+<!--    color: var(&#45;&#45;text);-->
+<!--    height: 100vh;-->
+<!--    display: flex;-->
+<!--    flex-direction: column;-->
+<!--  }-->
+<!--  header {-->
+<!--    padding: 16px 24px;-->
+<!--    border-bottom: 1px solid var(&#45;&#45;border);-->
+<!--  }-->
+<!--  header h1 { font-size: 16px; margin: 0; }-->
+<!--  header p { font-size: 13px; color: var(&#45;&#45;muted); margin: 4px 0 0; }-->
+<!--  #chat {-->
+<!--    flex: 1;-->
+<!--    overflow-y: auto;-->
+<!--    padding: 24px;-->
+<!--    display: flex;-->
+<!--    flex-direction: column;-->
+<!--    gap: 12px;-->
+<!--    max-width: 720px;-->
+<!--    margin: 0 auto;-->
+<!--    width: 100%;-->
+<!--  }-->
+<!--  .bubble {-->
+<!--    padding: 10px 14px;-->
+<!--    border-radius: 12px;-->
+<!--    max-width: 80%;-->
+<!--    line-height: 1.4;-->
+<!--    font-size: 14px;-->
+<!--    white-space: pre-wrap;-->
+<!--  }-->
+<!--  .user {-->
+<!--    align-self: flex-end;-->
+<!--    background: var(&#45;&#45;user-bubble);-->
+<!--  }-->
+<!--  .assistant {-->
+<!--    align-self: flex-start;-->
+<!--    background: var(&#45;&#45;assistant-bubble);-->
+<!--    border: 1px solid var(&#45;&#45;border);-->
+<!--  }-->
+<!--  .assistant.pending { color: var(&#45;&#45;muted); font-style: italic; }-->
+<!--  .error { color: #ff6b6b; }-->
+<!--  form {-->
+<!--    display: flex;-->
+<!--    gap: 8px;-->
+<!--    padding: 16px 24px;-->
+<!--    border-top: 1px solid var(&#45;&#45;border);-->
+<!--    max-width: 720px;-->
+<!--    margin: 0 auto;-->
+<!--    width: 100%;-->
+<!--  }-->
+<!--  input {-->
+<!--    flex: 1;-->
+<!--    background: var(&#45;&#45;panel);-->
+<!--    border: 1px solid var(&#45;&#45;border);-->
+<!--    color: var(&#45;&#45;text);-->
+<!--    padding: 10px 14px;-->
+<!--    border-radius: 8px;-->
+<!--    font-size: 14px;-->
+<!--  }-->
+<!--  input:focus { outline: none; border-color: var(&#45;&#45;accent); }-->
+<!--  button {-->
+<!--    background: var(&#45;&#45;accent);-->
+<!--    color: white;-->
+<!--    border: none;-->
+<!--    padding: 10px 20px;-->
+<!--    border-radius: 8px;-->
+<!--    font-size: 14px;-->
+<!--    cursor: pointer;-->
+<!--  }-->
+<!--  button:disabled { opacity: 0.5; cursor: not-allowed; }-->
+<!--</style>-->
+<!--</head>-->
+<!--<body>-->
+
+<!--<header>-->
+<!--  <h1>Persona Twin</h1>-->
+<!--  <p></p>-->
+<!--</header>-->
+
+<!--<div id="chat"></div>-->
+
+<!--<form id="form">-->
+<!--  <input id="input" type="text" placeholder="Type a message..." autocomplete="off" />-->
+<!--  <button type="submit" id="send">Send</button>-->
+<!--</form>-->
+
+<!--<script>-->
+<!--  const chatEl = document.getElementById("chat");-->
+<!--  const formEl = document.getElementById("form");-->
+<!--  const inputEl = document.getElementById("input");-->
+<!--  const sendEl = document.getElementById("send");-->
+
+<!--  let history = [];-->
+
+<!--  function addBubble(role, text, extraClass) {-->
+<!--    const div = document.createElement("div");-->
+<!--    div.className = `bubble ${role}${extraClass ? " " + extraClass : ""}`;-->
+<!--    div.textContent = text;-->
+<!--    chatEl.appendChild(div);-->
+<!--    chatEl.scrollTop = chatEl.scrollHeight;-->
+<!--    return div;-->
+<!--  }-->
+
+<!--  formEl.addEventListener("submit", async (e) => {-->
+<!--    e.preventDefault();-->
+<!--    const message = inputEl.value.trim();-->
+<!--    if (!message) return;-->
+
+<!--    addBubble("user", message);-->
+<!--    history.push({ role: "user", content: message });-->
+<!--    inputEl.value = "";-->
+<!--    inputEl.disabled = true;-->
+<!--    sendEl.disabled = true;-->
+
+<!--    const pending = addBubble("assistant", "Thinking...", "pending");-->
+
+<!--    try {-->
+<!--      const res = await fetch("/api/chat", {-->
+<!--        method: "POST",-->
+<!--        headers: { "Content-Type": "application/json" },-->
+<!--        body: JSON.stringify({ message, history: history.slice(0, -1) }),-->
+<!--      });-->
+
+<!--      const data = await res.json();-->
+
+<!--      if (!res.ok) {-->
+<!--        pending.textContent = `Error: ${data.detail || res.statusText}`;-->
+<!--        pending.classList.add("error");-->
+<!--        pending.classList.remove("pending");-->
+<!--        return;-->
+<!--      }-->
+
+<!--      pending.textContent = data.reply;-->
+<!--      pending.classList.remove("pending");-->
+<!--      history.push({ role: "assistant", content: data.reply });-->
+<!--    } catch (err) {-->
+<!--      pending.textContent = `Network error: ${err.message}`;-->
+<!--      pending.classList.add("error");-->
+<!--      pending.classList.remove("pending");-->
+<!--    } finally {-->
+<!--      inputEl.disabled = false;-->
+<!--      sendEl.disabled = false;-->
+<!--      inputEl.focus();-->
+<!--    }-->
+<!--  });-->
+<!--</script>-->
+
+<!--</body>-->
+<!--</html>-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Persona Twin</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #1a1d24;
+    --sidebar: #14161c;
+    --border: #2a2e37;
+    --text: #e8e9ec;
+    --muted: #8b8f9a;
+    --accent: #5b8cff;
+    --danger: #ff6b6b;
+    --user-bubble: #2a3550;
+    --assistant-bubble: #21242c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* ---------- Sidebar ---------- */
+  #sidebar {
+    width: 280px;
+    background: var(--sidebar);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  #sidebar-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  #sidebar-header h1 { font-size: 15px; margin: 0 0 10px; }
+  .btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    width: 100%;
+  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-secondary {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  #persona-list { overflow-y: auto; flex: 1; padding: 8px; }
+  .persona-item {
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-bottom: 4px;
+    font-size: 13px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+  }
+  .persona-item:hover { background: var(--panel); }
+  .persona-item.active { background: var(--panel); border: 1px solid var(--accent); }
+  .persona-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .status-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .status-ready { background: #1e4d2b; color: #6fd68a; }
+  .status-pending, .status-processing { background: #4d3d1e; color: #e0b95e; }
+  .status-error { background: #4d1e1e; color: #ff8b8b; }
+  .icon-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .icon-btn:hover { color: var(--danger); background: rgba(255,107,107,0.1); }
+
+  #chat-history-section { border-top: 1px solid var(--border); }
+  #chat-history-header {
+    padding: 12px 16px 6px;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  #chat-list { max-height: 240px; overflow-y: auto; padding: 0 8px 8px; }
+  .chat-item {
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    margin-bottom: 2px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+  }
+  .chat-item:hover { background: var(--panel); }
+  .chat-item.active { background: var(--panel); color: var(--accent); }
+  .chat-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+
+  /* ---------- Main chat area ---------- */
+  #main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  header h2 { font-size: 16px; margin: 0; }
+  header p { font-size: 13px; color: var(--muted); margin: 4px 0 0; }
+
+  #chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 720px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  #empty-state {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 14px;
+    text-align: center;
+    padding: 24px;
+  }
+  .bubble {
+    padding: 10px 14px;
+    border-radius: 12px;
+    max-width: 80%;
+    line-height: 1.4;
+    font-size: 14px;
+    white-space: pre-wrap;
+  }
+  .user { align-self: flex-end; background: var(--user-bubble); }
+  .assistant { align-self: flex-start; background: var(--assistant-bubble); border: 1px solid var(--border); }
+  .assistant.pending { color: var(--muted); font-style: italic; }
+  .error { color: var(--danger); }
+
+  form#chat-form {
+    display: flex;
+    gap: 8px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    max-width: 720px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  input[type=text] {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+  input:focus { outline: none; border-color: var(--accent); }
+
+  /* ---------- New persona modal ---------- */
+  #modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+  #modal-overlay.open { display: flex; }
+  #modal {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    width: 400px;
+    max-width: 90vw;
+  }
+  #modal h3 { margin: 0 0 16px; font-size: 15px; }
+  #modal label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 6px; }
+  #modal input[type=text] { width: 100%; margin-bottom: 16px; }
+  #modal input[type=file] {
+    width: 100%;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  #modal-actions { display: flex; gap: 8px; margin-top: 8px; }
+  #modal-error { color: var(--danger); font-size: 12px; margin-bottom: 12px; display: none; }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div id="sidebar-header">
+    <h1>Persona Twin</h1>
+    <button class="btn" id="new-persona-btn">+ New Persona</button>
+  </div>
+  <div id="persona-list"></div>
+  <div id="chat-history-section" style="display:none;">
+    <div id="chat-history-header">
+      <span>Chats</span>
+      <button class="icon-btn" id="new-chat-btn" title="New chat" style="font-size:16px;">+</button>
+    </div>
+    <div id="chat-list"></div>
+  </div>
+</div>
+
+<div id="main">
+  <header>
+    <h2 id="main-title">Select or create a persona</h2>
+    <p id="main-subtitle"></p>
+  </header>
+
+  <div id="empty-state">Pick a persona on the left, or create a new one, to start chatting.</div>
+  <div id="chat" style="display:none;"></div>
+
+  <form id="chat-form" style="display:none;">
+    <input id="chat-input" type="text" placeholder="Type a message..." autocomplete="off" />
+    <button type="submit" class="btn" id="send-btn" style="width:auto; padding:10px 20px;">Send</button>
+  </form>
+</div>
+
+<div id="modal-overlay">
+  <div id="modal">
+    <h3>New Persona</h3>
+    <div id="modal-error"></div>
+    <label>Persona name</label>
+    <input type="text" id="modal-name" placeholder="e.g. Jane Doe" />
+    <label>Source material (docs, images, txt/md — you can select multiple)</label>
+    <input type="file" id="modal-files" multiple />
+    <div id="modal-actions">
+      <button class="btn" id="modal-create-btn" style="flex:1;">Create</button>
+      <button class="btn btn-secondary" id="modal-cancel-btn" style="flex:1;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const personaListEl = document.getElementById("persona-list");
+  const chatHistorySection = document.getElementById("chat-history-section");
+  const chatListEl = document.getElementById("chat-list");
+  const chatEl = document.getElementById("chat");
+  const emptyStateEl = document.getElementById("empty-state");
+  const chatFormEl = document.getElementById("chat-form");
+  const chatInputEl = document.getElementById("chat-input");
+  const sendBtnEl = document.getElementById("send-btn");
+  const mainTitleEl = document.getElementById("main-title");
+  const mainSubtitleEl = document.getElementById("main-subtitle");
+
+  const modalOverlay = document.getElementById("modal-overlay");
+  const modalName = document.getElementById("modal-name");
+  const modalFiles = document.getElementById("modal-files");
+  const modalError = document.getElementById("modal-error");
+  const modalCreateBtn = document.getElementById("modal-create-btn");
+
+  let personas = [];
+  let currentPersonaId = null;
+  let currentChatId = null;
+  let pollTimer = null;
+
+  // ---------- Personas ----------
+
+  async function loadPersonas() {
+    const res = await fetch("/api/personas");
+    personas = await res.json();
+    renderPersonaList();
+
+    const anyProcessing = personas.some(p => p.status === "pending" || p.status === "processing");
+    if (anyProcessing && !pollTimer) {
+      pollTimer = setInterval(loadPersonas, 3000);
+    } else if (!anyProcessing && pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+  }
+
+  function renderPersonaList() {
+    personaListEl.innerHTML = "";
+    for (const p of personas) {
+      const item = document.createElement("div");
+      item.className = "persona-item" + (p.id === currentPersonaId ? " active" : "");
+
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "persona-name";
+      nameSpan.textContent = p.name;
+
+      const badge = document.createElement("span");
+      badge.className = `status-badge status-${p.status}`;
+      badge.textContent = p.status;
+      if (p.status === "error") badge.title = p.error_message || "Unknown error";
+
+      const delBtn = document.createElement("button");
+      delBtn.className = "icon-btn";
+      delBtn.textContent = "✕";
+      delBtn.title = "Delete persona";
+      delBtn.onclick = (e) => { e.stopPropagation(); deletePersona(p.id); };
+
+      item.appendChild(nameSpan);
+      item.appendChild(badge);
+      item.appendChild(delBtn);
+      item.onclick = () => selectPersona(p.id);
+      personaListEl.appendChild(item);
+    }
+  }
+
+  async function selectPersona(personaId) {
+    currentPersonaId = personaId;
+    currentChatId = null;
+    renderPersonaList();
+
+    const persona = personas.find(p => p.id === personaId);
+    mainTitleEl.textContent = persona.name;
+    mainSubtitleEl.textContent = persona.status === "ready"
+      ? "Grounded in this persona's knowledge graph and source material."
+      : `Status: ${persona.status}${persona.status === "error" ? " — " + (persona.error_message || "") : ""}`;
+
+    chatHistorySection.style.display = "block";
+    showEmptyState();
+    await loadChats();
+  }
+
+  async function deletePersona(personaId) {
+    if (!confirm("Delete this persona and its chat history? This can't be undone.")) return;
+    await fetch(`/api/personas/${personaId}`, { method: "DELETE" });
+    if (currentPersonaId === personaId) {
+      currentPersonaId = null;
+      currentChatId = null;
+      chatHistorySection.style.display = "none";
+      mainTitleEl.textContent = "Select or create a persona";
+      mainSubtitleEl.textContent = "";
+      showEmptyState();
+    }
+    await loadPersonas();
+  }
+
+  // ---------- Chats ----------
+
+  async function loadChats() {
+    const res = await fetch(`/api/chats?persona_id=${currentPersonaId}`);
+    const chats = await res.json();
+    chatListEl.innerHTML = "";
+    for (const c of chats) {
+      const item = document.createElement("div");
+      item.className = "chat-item" + (c.id === currentChatId ? " active" : "");
+
+      const titleSpan = document.createElement("span");
+      titleSpan.className = "chat-title";
+      titleSpan.textContent = c.title;
+
+      const delBtn = document.createElement("button");
+      delBtn.className = "icon-btn";
+      delBtn.textContent = "✕";
+      delBtn.title = "Delete chat";
+      delBtn.onclick = (e) => { e.stopPropagation(); deleteChat(c.id); };
+
+      item.appendChild(titleSpan);
+      item.appendChild(delBtn);
+      item.onclick = () => openChat(c.id);
+      chatListEl.appendChild(item);
+    }
+  }
+
+  async function createNewChat() {
+    if (!currentPersonaId) return;
+    const res = await fetch("/api/chats", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ persona_id: currentPersonaId, title: "New chat" }),
+    });
+    const chat = await res.json();
+    await loadChats();
+    openChat(chat.id);
+  }
+
+  async function deleteChat(chatId) {
+    await fetch(`/api/chats/${chatId}`, { method: "DELETE" });
+    if (currentChatId === chatId) {
+      currentChatId = null;
+      showEmptyState();
+    }
+    await loadChats();
+  }
+
+  async function openChat(chatId) {
+    currentChatId = chatId;
+    await loadChats();
+
+    chatEl.innerHTML = "";
+    chatEl.style.display = "flex";
+    emptyStateEl.style.display = "none";
+    chatFormEl.style.display = "flex";
+
+    const res = await fetch(`/api/chats/${chatId}/messages`);
+    const messages = await res.json();
+    for (const m of messages) {
+      addBubble(m.role, m.content);
+    }
+    chatInputEl.focus();
+  }
+
+  function showEmptyState() {
+    chatEl.style.display = "none";
+    chatFormEl.style.display = "none";
+    emptyStateEl.style.display = "flex";
+    emptyStateEl.textContent = currentPersonaId
+      ? "Start a new chat with this persona using the + button above."
+      : "Pick a persona on the left, or create a new one, to start chatting.";
+  }
+
+  // ---------- Sending messages ----------
+
+  function addBubble(role, text, extraClass) {
+    const div = document.createElement("div");
+    div.className = `bubble ${role}${extraClass ? " " + extraClass : ""}`;
+    div.textContent = text;
+    chatEl.appendChild(div);
+    chatEl.scrollTop = chatEl.scrollHeight;
+    return div;
+  }
+
+  chatFormEl.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const message = chatInputEl.value.trim();
+    if (!message || !currentChatId) return;
+
+    addBubble("user", message);
+    chatInputEl.value = "";
+    chatInputEl.disabled = true;
+    sendBtnEl.disabled = true;
+
+    const pending = addBubble("assistant", "Thinking...", "pending");
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: currentChatId, message }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        pending.textContent = `Error: ${data.detail || res.statusText}`;
+        pending.classList.add("error");
+        pending.classList.remove("pending");
+        return;
+      }
+
+      pending.textContent = data.reply;
+      pending.classList.remove("pending");
+      loadChats(); // refresh titles (first message auto-titles the chat)
+    } catch (err) {
+      pending.textContent = `Network error: ${err.message}`;
+      pending.classList.add("error");
+      pending.classList.remove("pending");
+    } finally {
+      chatInputEl.disabled = false;
+      sendBtnEl.disabled = false;
+      chatInputEl.focus();
+    }
+  });
+
+  document.getElementById("new-chat-btn").addEventListener("click", createNewChat);
+
+  // ---------- New persona modal ----------
+
+  function openModal() {
+    modalName.value = "";
+    modalFiles.value = "";
+    modalError.style.display = "none";
+    modalOverlay.classList.add("open");
+  }
+  function closeModal() {
+    modalOverlay.classList.remove("open");
+  }
+
+  document.getElementById("new-persona-btn").addEventListener("click", openModal);
+  document.getElementById("modal-cancel-btn").addEventListener("click", closeModal);
+
+  modalCreateBtn.addEventListener("click", async () => {
+    const name = modalName.value.trim();
+    const files = modalFiles.files;
+
+    if (!name) {
+      modalError.textContent = "Please enter a persona name.";
+      modalError.style.display = "block";
+      return;
+    }
+    if (!files || files.length === 0) {
+      modalError.textContent = "Please select at least one source file.";
+      modalError.style.display = "block";
+      return;
+    }
+
+    modalCreateBtn.disabled = true;
+    modalCreateBtn.textContent = "Creating...";
+
+    const formData = new FormData();
+    for (const f of files) formData.append("files", f);
+
+    try {
+      const res = await fetch(`/api/personas?name=${encodeURIComponent(name)}`, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        modalError.textContent = data.detail || "Something went wrong.";
+        modalError.style.display = "block";
+        return;
+      }
+
+      closeModal();
+      await loadPersonas();
+      selectPersona(data.id);
+    } catch (err) {
+      modalError.textContent = `Network error: ${err.message}`;
+      modalError.style.display = "block";
+    } finally {
+      modalCreateBtn.disabled = false;
+      modalCreateBtn.textContent = "Create";
+    }
+  });
+
+  // ---------- Init ----------
+
+  loadPersonas();
+</script>
+
+</body>
+</html>
